@@ -1,0 +1,105 @@
+[project]
+name = "graph-mcp"
+version = "0.1.0"
+description = "Thin authenticated Microsoft Graph passthrough MCP that injects a per-user On-Behalf-Of token into Graph API calls that the model constructs. Nine verb-based tools, no business logic."
+readme = "README.md"
+requires-python = ">=3.13"
+license = { text = "MIT" }
+authors = [{ name = "Methran" }]
+
+dependencies = [
+    "fastapi>=0.115,<1.0",
+    "uvicorn[standard]>=0.30,<1.0",
+    "pydantic>=2.9,<3.0",
+    "pydantic-settings>=2.5,<3.0",
+    "structlog>=24.4,<26.0",
+    "mcp>=1.2,<2.0",
+    "msal>=1.30,<2.0",
+    "httpx>=0.27,<1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=9.0,<10.0",
+    "pytest-asyncio>=0.24,<2.0",
+    "pytest-cov>=6.0,<8.0",
+    "respx>=0.21,<1.0",
+    "ruff>=0.7,<1.0",
+    "mypy>=1.13,<2.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+    "pytest-asyncio>=0.24.0",
+    "pytest-cov>=6.0.0",
+    "respx>=0.21.0",
+    "ruff>=0.7.0",
+    "mypy>=1.13.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/graph_mcp"]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+extend-exclude = ["**/__pycache__", ".venv", "build", "dist"]
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "COM812", "ISC001", "D", "ANN401", "FIX002", "TD002", "TD003",
+    "FBT001", "FBT002", "PLR0913", "PLW0108", "BLE001", "TRY003",
+    "TRY300", "TRY301", "EM101", "EM102", "ANN001", "ANN002", "ANN003",
+    "ANN201", "ANN202", "ANN204", "E501", "E741", "E402", "N802",
+    "N806", "A002", "C901", "S101", "PLR0911", "PLR0912", "PLR0915",
+    "PLR2004", "PLC0415", "PERF401", "DTZ007", "TC002", "TC003",
+    "ARG001", "RET504", "RUF001", "RUF002", "RUF003", "RUF043",
+    "SIM117", "ASYNC240", "ERA001", "PTH", "PIE810", "TC001", "B023",
+    "UP031", "S603", "S607", "S104", "TRY400", "S301",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = [
+    "PLR2004", "PT018", "S101", "S105", "S106", "SLF001", "ARG",
+    "INP001", "TC001", "TC003", "E501",
+]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+warn_unreachable = true
+warn_unused_ignores = true
+exclude = ["tests/", "build/", "dist/"]
+
+[[tool.mypy.overrides]]
+module = ["mcp", "mcp.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["msal", "msal.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "-ra",
+    "--cov=src",
+    "--cov-report=xml",
+    "--cov-report=term-missing",
+    "--cov-fail-under=20",
+]
+testpaths = ["tests"]
+asyncio_mode = "auto"
