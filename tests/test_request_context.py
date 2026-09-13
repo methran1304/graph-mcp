@@ -244,3 +244,47 @@ async def test_get_user_token_falls_back_to_asgi_ctx_when_no_mcp_request() -> No
         assert user_token_source() == "asgi_fallback"
     finally:
         _user_token.reset(reset)
+
+
+async def test_get_user_token_falls_back_when_mcp_request_lacks_the_header() -> None:
+    """An MCP request whose headers don't carry the forwarded auth must still
+    fall back to the ASGI contextvar.
+
+    This used to return "" instead: _mcp_request_header handed back "" for a
+    missing key, and get_user_token only fell through on None, so the fallback
+    was unreachable whenever any MCP request was in scope. The OBO exchange then
+    failed with "no user token" while the middleware one layer up had it.
+    """
+    import types
+
+    from mcp.server.lowlevel.server import request_ctx
+
+    fake_rc = types.SimpleNamespace(
+        request=types.SimpleNamespace(headers={"x-apim-user": "alex"}),
+    )
+    captured = _user_token.set("token-from-asgi-middleware")
+    rc = request_ctx.set(fake_rc)  # type: ignore[arg-type]
+    try:
+        assert get_user_token() == "token-from-asgi-middleware"
+        assert user_token_source() == "asgi_fallback"
+    finally:
+        request_ctx.reset(rc)
+        _user_token.reset(captured)
+
+
+async def test_get_user_token_falls_back_on_an_empty_header_value() -> None:
+    """An explicitly empty header is as useless as a missing one."""
+    import types
+
+    from mcp.server.lowlevel.server import request_ctx
+
+    fake_rc = types.SimpleNamespace(
+        request=types.SimpleNamespace(headers={"x-forwarded-authorization": ""}),
+    )
+    captured = _user_token.set("token-from-asgi-middleware")
+    rc = request_ctx.set(fake_rc)  # type: ignore[arg-type]
+    try:
+        assert get_user_token() == "token-from-asgi-middleware"
+    finally:
+        request_ctx.reset(rc)
+        _user_token.reset(captured)

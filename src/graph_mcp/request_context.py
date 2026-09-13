@@ -83,7 +83,15 @@ def _mcp_request_header(name: str) -> str | None:
     headers = getattr(getattr(rc, "request", None), "headers", None)
     if headers is None:
         return None
-    return str(headers.get(name, ""))
+    # Absent (or empty) header means "this request carries nothing", which has to
+    # read as None so callers fall through to the ASGI contextvar. Returning ""
+    # here made the fallback in get_user_token unreachable whenever any MCP
+    # request was in scope, so a request whose forwarded-auth header didn't land
+    # on the request object got "" instead of the token the middleware captured.
+    value = headers.get(name)
+    if value is None or str(value) == "":
+        return None
+    return str(value)
 
 
 def get_user_token() -> str:
